@@ -52,6 +52,7 @@
         removeEventListeners();
         let loadedScripts = 0;
         const totalScripts = scriptConfigs.length;
+    
         function scriptLoaded(callback) {
             loadedScripts++;
             if (loadedScripts === totalScripts && typeof globalCallback === 'function') {
@@ -61,6 +62,7 @@
                 callback();
             }
         }
+    
         function scriptError(src, callback) {
             const error = new Error(`Failed to load script: ${src}`);
             loadedScripts++;
@@ -71,13 +73,34 @@
                 globalCallback(error);
             }
         }
+    
+        // Loop through script configs and handle different triggers (immediate load or on click)
         scriptConfigs.forEach(function(config) {
-            const { src, location = 'body', callback } = config;
+            const { src, location = 'body', callback, triggerElement } = config;
+    
+            // Check if the script should be triggered by a click event on a specific element
+            if (triggerElement) {
+                const trigger = document.querySelector(triggerElement);
+                if (trigger) {
+                    trigger.addEventListener('click', function() {
+                        loadScript(src, location, callback);
+                    });
+                } else {
+                    console.warn(`Trigger element not found for: ${src}`);
+                }
+            } else {
+                // Otherwise, load script immediately or based on user interaction
+                loadScript(src, location, callback);
+            }
+        });
+    
+        // Load the script function
+        function loadScript(src, location, callback) {
             const script = document.createElement('script');
             script.src = src;
-
+    
             let loaded = false;
-
+    
             script.onload = function() {
                 if (!loaded) {
                     loaded = true;
@@ -90,12 +113,15 @@
                     scriptError(src, callback);
                 }
             };
+    
+            // Append the script to the correct location (head or body)
             if (location === 'head') {
                 document.head.appendChild(script);
             } else if (location === 'body') {
                 document.body.appendChild(script);
             }
-        });
+        }
+    
         const waitlessScripts = document.querySelectorAll('script[waitless]');
         const urlRegex = /^(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)?[a-zA-Z0-9-]+\.[a-zA-Z0-9]+(?:\/(?:[^\/.]+\/)*[^\/.]+\.[a-zA-Z0-9]+)?\/?$/;
         waitlessScripts.forEach(script => {
@@ -146,5 +172,5 @@
     });
 
     global.waitless = waitless;
-    console.log('waitless 1.0.6');
+    console.log('waitless 1.0.7');
 })(this);
